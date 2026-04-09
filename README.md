@@ -1,9 +1,5 @@
 # WATI WhatsApp Automation Agent
 
-A conversational agent that translates natural-language instructions into WATI API call sequences, previews them for user approval, and executes the approved plan against a mock backend.
-
-Built with TypeScript, Bun, Ink (terminal UI), and Ollama (local LLM).
-
 ## How to Run
 
 ### Requirements
@@ -44,11 +40,11 @@ OLLAMA_MODEL=gemma3:4b bun run dev "Create a contact for 6287000001111 named May
 
 ## Problem Framing
 
-I treated this as a planning problem, not a UI problem. The core question is: given a user request like "Move 6289876543210 to Sales and add the follow_up tag", how does the system produce a reviewable sequence of API calls?
+I treated this challenge as a mini product design exercise, where the "product" is an agent that can understand user instructions, plan a sequence of API calls using a defined toolset, and execute them with user confirmation. The core question is: given a user request like "Move 6289876543210 to Sales and add the follow_up tag", how does the system produce a reviewable sequence of API calls?
 
 That led to four constraints that shaped the whole implementation:
 
-1. The model should only plan with tools that actually exist in the codebase.
+1. The model should only plan with tools that actually exist in the codebase without manual prompt editing when tools are added or changed.
 2. The user must see the proposed calls before anything mutating happens.
 3. The implementation should be small enough to finish the challenge quickly but complete enough to demonstrate the core concepts of orchestration, planning, and execution.
 4. The mock backend should be realistic enough to demonstrate orchestration across multiple related API calls, but simple enough to implement without spending time on HTTP, authentication, or error handling.
@@ -160,9 +156,9 @@ graph LR
     B --> D
 ```
 
-Each tool method in `WatiTools` is annotated with `@Tool(key, description, parameters)`. At bootstrap, `ToolRegistry.register(new WatiTools(gateway))` reads the decorator metadata from the prototype and indexes each method by its own key. The prompt factory then iterates over `registry.list()` to generate the tool documentation section of the system prompt dynamically.
+Each tool method in `WatiTools` is annotated with `@Tool(key, description, parameters)`. At bootstrap, `ToolRegistry.register(new WatiTools(gateway))` reads the decorator metadata from the prototype and indexes each method by its own key. Then, the prompt iterates over `registry.list()` to generate the tool documentation section of the system prompt dynamically.
 
-This means adding a new tool is a single decorated method and no prompt editing and manual registration is required. It also ensures that the model can only plan with tools that actually exist in the codebase, since the prompt is generated from the registry.
+This means adding a new tool is a single decorated method and no prompt editing and manual registration is needed. It also ensures that the model can only plan with tools that actually exist in the codebase, since the prompt is generated from the registry.
 
 ### Available tools
 
