@@ -93,7 +93,7 @@ src/
     session/
       file-session-store.ts    # JSON file persistence in .sessions/
     ink/
-      terminal-app.tsx         # Chat UI component (Ink/React)
+      terminal-app/            # Chat UI components
       terminal-app-service.ts  # Session operations used by the UI
 ```
 
