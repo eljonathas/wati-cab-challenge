@@ -16,13 +16,13 @@ bun install
 ### Start
 
 ```bash
-OLLAMA_MODEL=gemma3:4b bun run dev
+OLLAMA_MODEL=gemma4:e4b bun run dev
 ```
 
-If `OLLAMA_MODEL` is not set, the app defaults to `gemma3:4b`. You can also pass an initial instruction:
+You can also enable or disable the Ollama "think" mode (which shows intermediate reasoning steps) with the `OLLAMA_THINK` environment variable:
 
 ```bash
-OLLAMA_MODEL=gemma3:4b bun run dev "Create a contact for 6287000001111 named Maya and set city to Bandung"
+OLLAMA_MODEL=gemma4:e4b OLLAMA_THINK=true bun run dev
 ```
 
 ### Terminal commands

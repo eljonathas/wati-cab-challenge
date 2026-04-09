@@ -14,6 +14,7 @@ interface OllamaChunk {
 export class OllamaProvider implements LlmProvider {
   constructor(
     private readonly model: string,
+    private readonly think: boolean = true,
     private readonly baseUrl = "http://127.0.0.1:11434",
     private readonly timeoutMs = 90000,
   ) {}
@@ -22,7 +23,10 @@ export class OllamaProvider implements LlmProvider {
     input: StructuredGenerationInput,
   ): Promise<StructuredGenerationResult> {
     const timeoutController = new AbortController();
-    const timeoutId = setTimeout(() => timeoutController.abort(), this.timeoutMs);
+    const timeoutId = setTimeout(
+      () => timeoutController.abort(),
+      this.timeoutMs,
+    );
     const signal = anySignal([input.signal, timeoutController.signal]);
 
     try {
@@ -38,14 +42,16 @@ export class OllamaProvider implements LlmProvider {
             { role: "user", content: input.userPrompt },
           ],
           stream: true,
-          think: true,
+          think: this.think,
           format: "json",
           options: { temperature: 0.1 },
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama request failed with status ${response.status}.`);
+        throw new Error(
+          `Ollama request failed with status ${response.status}.`,
+        );
       }
 
       if (!response.body) {
@@ -108,8 +114,12 @@ export class OllamaProvider implements LlmProvider {
   }
 }
 
-function anySignal(signals: Array<AbortSignal | undefined>): AbortSignal | undefined {
-  const activeSignals = signals.filter((signal): signal is AbortSignal => Boolean(signal));
+function anySignal(
+  signals: Array<AbortSignal | undefined>,
+): AbortSignal | undefined {
+  const activeSignals = signals.filter((signal): signal is AbortSignal =>
+    Boolean(signal),
+  );
   if (activeSignals.length === 0) return undefined;
   if (activeSignals.some((signal) => signal.aborted)) {
     const controller = new AbortController();

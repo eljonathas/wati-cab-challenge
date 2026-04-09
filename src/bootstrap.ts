@@ -16,7 +16,10 @@ export function bootstrap(): {
   registry.register(new WatiTools(new MockWatiGateway()));
 
   const useCase = new RunAgentUseCase(
-    new OllamaProvider(Bun.env.OLLAMA_MODEL ?? "gemma4:e4b"),
+    new OllamaProvider(
+      Bun.env.OLLAMA_MODEL ?? "gemma4:e4b",
+      Bun.env.OLLAMA_THINK === "true",
+    ),
     registry,
   );
 
