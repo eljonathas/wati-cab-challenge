@@ -1,4 +1,4 @@
-# WATI WhatsApp Automation Agent
+# WATI Agent
 
 ## How to Run
 
@@ -12,6 +12,11 @@
 ```bash
 bun install
 ```
+
+### Demonstration
+
+https://github.com/user-attachments/assets/2d5e3ad5-cdcf-4c7d-85bc-ddd0a3a2baae
+
 
 ### Start
 
