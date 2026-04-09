@@ -99,83 +99,45 @@ src/
 ## Execution Flow
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant UI as TerminalApp
-    participant Svc as TerminalAppService
-    participant UC as RunAgentUseCase
-    participant Prompt as SystemPromptFactory
-    participant LLM as OllamaProvider
-    participant Parser as PlanParser
-    participant Guard as PlanGuard
-    participant Exec as PlanExecutor
-    participant Tools as ToolRegistry
-    participant Wati as MockWatiGateway
+flowchart TD
+    A([User types instruction]) --> B[Build system prompt\nfrom tool registry]
+    B --> C[Send prompt + history\nto Ollama]
+    C --> D[Parse JSON response]
+    D --> E{Message or Plan?}
 
-    User->>UI: types instruction
-    UI->>Svc: submitInstruction(session, text)
-    Svc->>UC: respond(instruction, history)
-    UC->>Prompt: create(tools)
-    Prompt-->>UC: system prompt with tool catalog
-    UC->>LLM: generateStructuredText(prompt, history, instruction)
-    LLM-->>UC: JSON string
-    UC->>Parser: parse(raw, thinking)
-    Parser-->>UC: AgentResponse (message or plan)
+    E -->|Message| F[Show message in chat]
+    F --> A
 
-    alt Response is a plan
-        UC->>Guard: validate(plan)
-        Guard-->>UC: ok or throws
-        UC-->>Svc: AgentPlanResponse
-        Svc-->>UI: show plan preview
-        UI-->>User: "Reply yes to run, no to cancel"
+    E -->|Plan| G[Validate with PlanGuard]
+    G -->|Invalid| H[Show validation error]
+    H --> A
+    G -->|Valid| I[Show plan preview]
+    I --> J([User reviews plan])
 
-        alt User confirms
-            User->>UI: "yes"
-            UI->>Svc: executeLastPlan(session)
-            Svc->>UC: execute(plan)
-            UC->>Guard: validate(plan)
-            UC->>Exec: execute(plan)
+    J -->|yes| K[Execute steps in order]
+    J -->|no| L[Cancel plan]
+    J -->|new instruction| B
+    L --> A
 
-            loop Each step in plan
-                Exec->>Tools: execute(toolKey, resolvedInput)
-                Tools->>Wati: gateway method call
-                Wati-->>Tools: result
-                Tools-->>Exec: result
-            end
+    K --> M{Step failed?}
+    M -->|No| N{More steps?}
+    N -->|Yes| O[Resolve $ref / $each\nfor next step]
+    O --> K
+    N -->|No| P[Send results to LLM\nfor summary]
+    M -->|Yes| P
 
-            Exec-->>UC: AgentOutcome
-            UC-->>Svc: outcome
-            Svc->>UC: respond("[Summarize results]", updatedHistory)
-            UC->>LLM: generateStructuredText(...)
-            LLM-->>UC: interpretation
-            UC-->>Svc: summary message
-            Svc-->>UI: show results + summary
-        end
-
-        alt User cancels
-            User->>UI: "no"
-            UI->>Svc: cancelLastPlan(session)
-            Svc-->>UI: plan marked as cancelled
-        end
-    end
-
-    alt Response is a message
-        UC-->>Svc: AgentMessageResponse
-        Svc-->>UI: show message
-        UI-->>User: renders markdown
-    end
+    P --> Q[Show results + summary]
+    Q --> R[Save to session file]
+    R --> A
 ```
 
-### Step-by-step
-
-1. The user types an instruction in the terminal.
-2. `TerminalAppService` sends it to `RunAgentUseCase.respond`, which builds the system prompt from the current tool registry, appends session history, and calls Ollama.
-3. Ollama returns JSON. `PlanParser` classifies it as either a conversational message or a structured plan.
-4. If it's a plan, `PlanGuard` validates that all referenced tools exist, step IDs are unique, and `forEach` syntax is correct.
-5. The plan preview is rendered in the chat. Nothing is executed yet.
-6. If the user confirms, `PlanExecutor` runs each step in order, resolving `$ref:` (single value from a prior step) and `$each:` (iteration over an array result) references as it goes.
-7. After execution, the results are sent back to the LLM for a conversational summary that the user can actually read.
-8. Everything is persisted to `.sessions/<uuid>.json` for conversational memory and session resume.
+1. The user types an instruction. The system prompt is built dynamically from the tool registry and sent to Ollama along with the session history.
+2. The model returns JSON. `PlanParser` classifies it as a conversational message or a structured plan.
+3. If it's a plan, `PlanGuard` validates tool names, step IDs, and `forEach` syntax. Invalid plans are rejected before the user sees them.
+4. The plan preview is rendered in the chat. Nothing is executed yet.
+5. If the user confirms, `PlanExecutor` runs each step in order, resolving `$ref:` and `$each:` references between steps.
+6. After execution (or on the first failure), the results go back to the LLM for a conversational summary.
+7. Everything is persisted to `.sessions/<uuid>.json`.
 
 ## Tool Catalog Design
 
