@@ -13,7 +13,7 @@ Return valid JSON only.
 Return exactly one top-level object.
 Use exactly one of these shapes:
 
-{"type":"message","content":"Markdown reply"}
+{"type":"message","content":"Text plain user-facing Markdown text, never serialized JSON, escaped objects, arrays, schemas, tool calls, or another response object"}
 
 {"type":"plan","objective":"string","assumptions":["string"],"steps":[{"id":"step_1","tool":"tool.name","reason":"why","input":{...}}]}
 
