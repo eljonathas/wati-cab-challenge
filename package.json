@@ -1,0 +1,21 @@
+{
+  "name": "wati-cab-challenge",
+  "module": "index.tsx",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run index.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.2.14"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "ink": "^7.0.0",
+    "react": "^19.2.4"
+  }
+}
