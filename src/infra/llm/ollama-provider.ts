@@ -12,6 +12,8 @@ interface OllamaChunk {
 }
 
 export class OllamaProvider implements LlmProvider {
+  private static readonly MAX_RETRIES = 3;
+
   constructor(
     private readonly model: string,
     private readonly think: boolean = true,
@@ -22,12 +24,45 @@ export class OllamaProvider implements LlmProvider {
   async generateStructuredText(
     input: StructuredGenerationInput,
   ): Promise<StructuredGenerationResult> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= OllamaProvider.MAX_RETRIES; attempt++) {
+      try {
+        return await this.tryGenerate(input, attempt);
+      } catch (cause) {
+        if (isAbortError(cause)) {
+          if (input.signal?.aborted) {
+            throw new Error("Request cancelled.");
+          }
+          throw new Error(
+            `Ollama request timed out after ${this.timeoutMs}ms.`,
+          );
+        }
+
+        lastError =
+          cause instanceof Error ? cause : new Error("Unknown error.");
+
+        // Only retry on empty responses — other errors are not retryable
+        if (!lastError.message.includes("empty response")) {
+          throw lastError;
+        }
+      }
+    }
+
+    throw lastError ?? new Error("Ollama returned an empty response.");
+  }
+
+  private async tryGenerate(
+    input: StructuredGenerationInput,
+    attempt: number,
+  ): Promise<StructuredGenerationResult> {
     const timeoutController = new AbortController();
-    const timeoutId = setTimeout(
-      () => timeoutController.abort(),
-      this.timeoutMs,
-    );
+    const timeoutMs = this.timeoutMs + attempt * 15000;
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
     const signal = anySignal([input.signal, timeoutController.signal]);
+
+    // Increase temperature slightly on retries to avoid the same dead-end
+    const temperature = Math.min(0.1 + attempt * 0.15, 0.4);
 
     try {
       const response = await fetch(`${this.baseUrl}/api/chat`, {
@@ -44,7 +79,7 @@ export class OllamaProvider implements LlmProvider {
           stream: true,
           think: this.think,
           format: "json",
-          options: { temperature: 0.1 },
+          options: { temperature },
         }),
       });
 
@@ -100,14 +135,6 @@ export class OllamaProvider implements LlmProvider {
       }
 
       return { content, thinking };
-    } catch (cause) {
-      if (isAbortError(cause)) {
-        if (input.signal?.aborted) {
-          throw new Error("Request cancelled.");
-        }
-        throw new Error(`Ollama request timed out after ${this.timeoutMs}ms.`);
-      }
-      throw cause;
     } finally {
       clearTimeout(timeoutId);
     }

@@ -55,8 +55,8 @@ export function formatPlanTurnMarkdown(turn: AgentPlanTurn): string {
   lines.push("### Results");
 
   for (const [index, result] of turn.outcome.results.entries()) {
-    const status = result.ok ? "Succeeded" : "Failed";
-    lines.push(`#### ${index + 1}. \`${result.tool}\` ${status.toLowerCase()}`);
+    const status = result.ok ? "succeeded" : "failed";
+    lines.push(`#### ${index + 1}. \`${result.tool}\` ${status}`);
     lines.push("```json");
     lines.push(indentJson(result.data));
     lines.push("```");
@@ -134,3 +134,4 @@ export class SessionHistoryBuilder {
 function indentJson(value: unknown): string {
   return JSON.stringify(value ?? null, null, 2);
 }
+

@@ -21,6 +21,7 @@ export interface MessageTemplate {
 
 export interface WatiGateway {
   listContacts(filter?: {
+    name?: string;
     tag?: string;
     attribute?: { name: string; value: string };
   }): Promise<Contact[]>;

@@ -77,10 +77,16 @@ export class MockWatiGateway implements WatiGateway {
   ];
 
   async listContacts(filter?: {
+    name?: string;
     tag?: string;
     attribute?: { name: string; value: string };
   }): Promise<Contact[]> {
     return this.contacts.filter((c) => {
+      if (
+        filter?.name &&
+        !c.name.toLowerCase().includes(filter.name.toLowerCase())
+      )
+        return false;
       if (filter?.tag && !c.tags.includes(filter.tag)) return false;
       if (
         filter?.attribute &&

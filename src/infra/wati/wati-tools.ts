@@ -7,8 +7,14 @@ export class WatiTools {
 
   @Tool(
     "wati.list_contacts",
-    "List contacts. All filters are optional. If called without filters, it lists all contacts. For requests like 'where attribute = value', use attributeName='attribute' and attributeValue='value'.",
+    "List contacts. All filters are optional. If called without filters, it lists all contacts. Use 'name' to filter by contact name. For custom attribute filters like 'where city = Jakarta', use attributeName and attributeValue.",
     [
+      {
+        name: "name",
+        type: "string",
+        description:
+          "Optional contact name filter (case-insensitive substring match, e.g. 'Ayu').",
+      },
       {
         name: "tag",
         type: "string",
@@ -17,7 +23,8 @@ export class WatiTools {
       {
         name: "attributeName",
         type: "string",
-        description: "Optional custom attribute name filter (e.g. 'city').",
+        description:
+          "Optional custom attribute name filter (e.g. 'city'). Only for customParams fields, not for top-level fields like name.",
       },
       {
         name: "attributeValue",
@@ -28,6 +35,7 @@ export class WatiTools {
     ],
   )
   async listContacts(input: Record<string, Json>): Promise<unknown> {
+    const name = typeof input.name === "string" ? input.name : undefined;
     const tag = typeof input.tag === "string" ? input.tag : undefined;
     const attributeName =
       typeof input.attributeName === "string" ? input.attributeName : undefined;
@@ -37,6 +45,7 @@ export class WatiTools {
         : undefined;
 
     return this.gateway.listContacts({
+      name,
       tag,
       attribute:
         attributeName && attributeValue
