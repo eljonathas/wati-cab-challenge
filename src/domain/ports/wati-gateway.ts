@@ -5,6 +5,7 @@ export interface Contact {
   readonly name: string;
   readonly tags: string[];
   readonly customParams: Record<string, string>;
+  readonly lastContactedAt?: string;
 }
 
 export interface Operator {
@@ -24,6 +25,12 @@ export interface WatiGateway {
     name?: string;
     tag?: string;
     attribute?: { name: string; value: string };
+  }): Promise<Contact[]>;
+
+  listContactsByLastActivity(filter: {
+    notContactedSinceDays: number;
+    tag?: string;
+    includeNeverContacted?: boolean;
   }): Promise<Contact[]>;
 
   getContactInfo(whatsappNumber: string): Promise<Contact | null>;

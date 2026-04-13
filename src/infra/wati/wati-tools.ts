@@ -55,6 +55,56 @@ export class WatiTools {
   }
 
   @Tool(
+    "wati.list_contacts_by_last_activity",
+    "List contacts that have NOT been contacted within the last N days. Use this for inactivity/re-engagement queries like 'VIPs not contacted in the last 7 days'. Optionally narrow by tag. Contacts with no recorded activity are included by default.",
+    [
+      {
+        name: "notContactedSinceDays",
+        type: "number",
+        description:
+          "Minimum number of days since the contact was last messaged. E.g. 7 returns contacts whose lastContactedAt is 7 or more days ago.",
+        required: true,
+      },
+      {
+        name: "tag",
+        type: "string",
+        description: "Optional tag filter (e.g. 'VIP').",
+      },
+      {
+        name: "includeNeverContacted",
+        type: "boolean",
+        description:
+          "Whether contacts that were never contacted should be included. Defaults to true.",
+      },
+    ],
+  )
+  async listContactsByLastActivity(
+    input: Record<string, Json>,
+  ): Promise<unknown> {
+    const notContactedSinceDays =
+      typeof input.notContactedSinceDays === "number"
+        ? input.notContactedSinceDays
+        : undefined;
+    if (notContactedSinceDays === undefined || notContactedSinceDays < 0) {
+      throw new Error(
+        "notContactedSinceDays is required and must be a non-negative number.",
+      );
+    }
+
+    const tag = typeof input.tag === "string" ? input.tag : undefined;
+    const includeNeverContacted =
+      typeof input.includeNeverContacted === "boolean"
+        ? input.includeNeverContacted
+        : undefined;
+
+    return this.gateway.listContactsByLastActivity({
+      notContactedSinceDays,
+      tag,
+      includeNeverContacted,
+    });
+  }
+
+  @Tool(
     "wati.get_contact_info",
     "Get detailed info for a single contact by WhatsApp number.",
     [

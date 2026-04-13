@@ -12,30 +12,35 @@ export class MockWatiGateway implements WatiGateway {
     name: string;
     tags: string[];
     customParams: Record<string, string>;
+    lastContactedAt?: string;
   }> = [
     {
       whatsappNumber: "6281234567890",
       name: "Ayu",
       tags: ["VIP"],
       customParams: { city: "Jakarta", plan: "premium" },
+      lastContactedAt: "2026-03-20T09:15:00.000Z",
     },
     {
       whatsappNumber: "6289876543210",
       name: "Rizky",
       tags: ["trial"],
       customParams: { city: "Bandung", plan: "free" },
+      lastContactedAt: "2026-04-11T14:02:00.000Z",
     },
     {
       whatsappNumber: "6281112223333",
       name: "Nadia",
       tags: ["VIP", "renewal"],
       customParams: { city: "Jakarta", plan: "premium" },
+      lastContactedAt: "2026-04-04T11:30:00.000Z",
     },
     {
       whatsappNumber: "6281444555666",
       name: "Budi",
       tags: ["churned"],
       customParams: { city: "Surabaya", plan: "basic" },
+      lastContactedAt: "2026-02-01T08:00:00.000Z",
     },
   ];
 
@@ -94,6 +99,36 @@ export class MockWatiGateway implements WatiGateway {
       )
         return false;
       return true;
+    });
+  }
+
+  async listContactsByLastActivity(filter: {
+    notContactedSinceDays: number;
+    tag?: string;
+    includeNeverContacted?: boolean;
+  }): Promise<Contact[]> {
+    if (
+      !Number.isFinite(filter.notContactedSinceDays) ||
+      filter.notContactedSinceDays < 0
+    ) {
+      throw new Error("notContactedSinceDays must be a non-negative number.");
+    }
+
+    const includeNeverContacted = filter.includeNeverContacted ?? true;
+    const cutoff =
+      Date.now() - filter.notContactedSinceDays * 24 * 60 * 60 * 1000;
+
+    return this.contacts.filter((contact) => {
+      if (filter.tag && !contact.tags.includes(filter.tag)) return false;
+
+      if (contact.lastContactedAt === undefined) {
+        return includeNeverContacted;
+      }
+
+      const lastContactedMs = Date.parse(contact.lastContactedAt);
+      if (Number.isNaN(lastContactedMs)) return includeNeverContacted;
+
+      return lastContactedMs <= cutoff;
     });
   }
 
@@ -176,6 +211,7 @@ export class MockWatiGateway implements WatiGateway {
     );
     if (!contact) throw new Error(`Contact ${whatsappNumber} not found.`);
 
+    contact.lastContactedAt = new Date().toISOString();
     return { whatsappNumber, messageText, status: "session_message_sent" };
   }
 
@@ -198,6 +234,7 @@ export class MockWatiGateway implements WatiGateway {
       throw new Error(`Template '${templateName}' not found.`);
     }
 
+    contact.lastContactedAt = new Date().toISOString();
     return {
       whatsappNumber,
       templateName,
